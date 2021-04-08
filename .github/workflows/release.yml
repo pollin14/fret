@@ -24,7 +24,7 @@ jobs:
       - name: Install dependencies
         run: composer install --prefer-dist
       - name: Build
-        run: php fret app:build
+        run: php fret app:build --build-version=released
       - name: Upload the artifacts
         uses: skx/github-action-publish-binaries@master
         env:
