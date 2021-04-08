@@ -24,9 +24,12 @@ Zend Engine v3.4.0, Copyright (c) Zend Technologies
     with Xdebug v2.9.2, Copyright (c) 2002-2020, by Derick Rethans
 ```
 
+ Download the `fret` file from the releases section [https://github.com/pollin14/fret/releases](Release).
+
 ## How to use
 
-Firstly, put your data files in the chapters `data/cfp` and `data/yfp` aside the fret. Then you can run CFP with
+
+Firstly, put your data files in the chapters `data/cfp` and `data/yfp` aside `fret`. Then you can run CFP with
 
 ```bash 
 php fret cfp
