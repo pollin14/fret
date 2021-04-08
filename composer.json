@@ -22,14 +22,15 @@
         }
     ],
     "require": {
-        "php": "7.4",
-        "laravel-zero/framework": "^8.4",
+        "php": "^7.4",
         "league/csv": "^9.7",
         "richjenks/stats": "^1.0"
     },
     "require-dev": {
+        "laravel-zero/framework": "^8.4",
         "mockery/mockery": "^1.4.2",
-        "pestphp/pest": "^1.0"
+        "pestphp/pest": "^1.0",
+        "ext-intl": "*"
     },
     "autoload": {
         "psr-4": {
@@ -49,6 +50,6 @@
     "minimum-stability": "dev",
     "prefer-stable": true,
     "bin": [
-        "fret"
+        "builds/fret"
     ]
 }

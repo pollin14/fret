@@ -32,7 +32,9 @@ class YFP extends FretCommand
      *
      * @var string
      */
-    protected $signature = 'yfp {number-of-files=29} {number-of-lines-by-file=512}';
+    protected $signature = 'yfp
+        {--number-of-files=29 : Number of file to process}
+        {--number-of-lines-by-file=512 : Number of lines of each file}';
 
     /**
      * The description of the command.

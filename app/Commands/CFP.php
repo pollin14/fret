@@ -15,7 +15,9 @@ class CFP extends FretCommand
     /**
      * @var string
      */
-    protected $signature = 'cfp {--number-of-files=29} {--number-of-lines-by-file=512}';
+    protected $signature = 'cfp
+        {--number-of-files=29 : Number of file to process}
+        {--number-of-lines-by-file=512 : Number of lines of each file}';
 
     /**
      * @var string
