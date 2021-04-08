@@ -2,70 +2,70 @@
 
 namespace App\Commands;
 
-use Closure;
+use App\Services\Cleaner;
+use App\Services\FretCommand;
+use App\Services\StepCalculator;
 use Exception;
-use Illuminate\Contracts\Filesystem\Filesystem;
-use Illuminate\Support\Facades\File;
-use LaravelZero\Framework\Commands\Command;
 use League\Csv\Reader;
-use League\Csv\Writer;
 use RichJenks\Stats\Stats;
 
-class YFP extends Command
+class YFP extends FretCommand
 {
-    private const STEP = 0.62513;
-    private const START = 404.33;
     private const RATIO_INTERVAL = [180, 220];
+    private const RESULTS_DIR = 'results/yfp/';
+    private const DATA_DIR = 'data/yfp/';
+    private const GROUPS = [
+        [
+            'intensity' => 'low',
+            'specterPrefix' => 'A',
+            'backgroundPrefix' => 'B'
+        ],
+        [
+            'intensity' => 'high',
+            'specterPrefix' => 'C',
+            'backgroundPrefix' => 'D'
+        ]
+    ];
 
     /**
      * The signature of the command.
      *
      * @var string
      */
-    protected $signature = 'yfp';
+    protected $signature = 'yfp {number-of-files=29} {number-of-lines-by-file=512}';
 
     /**
      * The description of the command.
      *
      * @var string
      */
-    protected $description = 'Takes several file and calculate the fret';
+    protected $description = 'Takes several file and calculate the fret YFP';
 
     /**
      * Execute the console command.
      *
-     * @param Filesystem $filesystem
-     * @return mixed
+     * @param StepCalculator $stepCalculator
+     * @param Cleaner $cleaner
+     * @return int
      */
-    public function handle(Filesystem $filesystem)
+    public function handle(StepCalculator $stepCalculator, Cleaner $cleaner)
     {
-        $numberOfFiles = 29;
-        $numberOfRows = 512;
-        $groups = [
-            [
-                'intensity' => 'low',
-                'specterPrefix' => 'A',
-                'backgroundPrefix' => 'B'
-            ],
-            [
-                'intensity' => 'high',
-                'specterPrefix' => 'C',
-                'backgroundPrefix' => 'D'
-            ]
-        ];
+        $numberOfFiles = $this->argument('number-of-files');
+        $numberOfRows = $this->argument('number-of-lines-by-file');
 
-        $this->task('Clean results directory', function () use ($filesystem) {
-            $filesystem->deleteDirectory('results');
-            $filesystem->makeDirectory('results');
+        $groups = self::GROUPS;
+
+        $this->task('Clean results directory', function () use ($cleaner) {
+            $cleaner->clean(self::RESULTS_DIR);
         });
 
         $this->task('Generate subs files', function () use ($numberOfFiles, $groups) {
             foreach ($groups as $group) {
                 $this->doubleIterationOverFiles(
                     $numberOfFiles,
-                    'data/' . $group['specterPrefix'],
-                    'data/' . $group['backgroundPrefix'],
-                    'results/' . $group['intensity'] . '-sub-',
+                    self::DATA_DIR . $group['specterPrefix'],
+                    self::DATA_DIR . $group['backgroundPrefix'],
+                    self::RESULTS_DIR . $group['intensity'] . '-sub-',
                     function ($recordA, $recordB) use ($group) {
                         $result = (float)$recordA[1] - (float)$recordB[1];
 
@@ -76,14 +76,14 @@ class YFP extends Command
             }
         });
 
-        $this->task('Join low intensity and high intensity', function () use ($numberOfFiles, $groups) {
+        $this->task('Join low intensity and high intensity', function () use ($numberOfFiles, $stepCalculator) {
             $this->doubleIterationOverFiles(
                 $numberOfFiles,
-                'results/low-sub-',
-                'results/high-sub-',
-                'results/low-and-high-sub-',
-                function ($recordA, $recordB, $rowNumber) {
-                    $position = self::START + ($rowNumber * self::STEP);
+                self::RESULTS_DIR . 'low-sub-',
+                self::RESULTS_DIR . 'high-sub-',
+                self::RESULTS_DIR . 'low-and-high-sub-',
+                function ($recordA, $recordB, $rowNumber) use ($stepCalculator) {
+                    $position = $stepCalculator->calculate($rowNumber);
 
                     return [$position, $recordA[0], $recordB[0]];
                 },
@@ -91,21 +91,23 @@ class YFP extends Command
             );
         });
 
-        $this->task('Generate A0', function () use ($numberOfFiles) {
+        $this->task('Generate A0', function () use ($numberOfFiles, $stepCalculator) {
             $this->doubleIterationOverFiles(
                 $numberOfFiles,
-                'results/low-sub-',
-                'results/high-sub-',
-                'results/A0-',
-                function ($recordA, $recordB, $i, $fileNumber) {
-                    $position = self::START + ($i * self::STEP);
+                self::RESULTS_DIR . 'low-sub-',
+                self::RESULTS_DIR . 'high-sub-',
+                self::RESULTS_DIR . 'A0-',
+                function ($recordA, $recordB, $rowNumber, $fileNumber) use ($stepCalculator) {
+                    $position = $stepCalculator->calculate($rowNumber);
 
-                    if ($i < self::RATIO_INTERVAL[0] || $i > self::RATIO_INTERVAL[1]) {
+                    if ($rowNumber < self::RATIO_INTERVAL[0] || $rowNumber > self::RATIO_INTERVAL[1]) {
                         return [$position, 0];
                     }
 
                     if ((float)$recordB[0] === 0.0) {
-                        $row = $i + 1;
+                        $this->newLine();
+                        $this->error('May be you need a better adjust.');
+                        $row = $rowNumber + 1;
                         throw new Exception("Division by 0. File: {$fileNumber}, Row: {$row}, record low: {$recordA[0]}, record high: {$recordB[0]}");
                     }
 
@@ -115,29 +117,16 @@ class YFP extends Command
         });
 
         $this->task('Generate Mean of A0', function () use ($numberOfFiles, $numberOfRows) {
-            $sums = array_fill(0, $numberOfRows, 0);
-            $means = [];
-            for ($n = 1; $n <= $numberOfFiles; ++$n) {
-                $pathname = storage_path('results/A0-' . $n . '.csv');
-                $records = Reader::createFromPath($pathname)->getRecords();
-
-                $position = 0;
-                foreach ($records as $record) {
-                    $sums[$position] += (float)$record[1];
-
-                    if ($n === $numberOfFiles - 1) {
-                        $means[$position] = [$sums[$position] / $numberOfFiles];
-                    }
-
-                    $position++;
-                }
-            }
-
-            $this->writeCsv('results/A0-means', $means);
+            $this->mean(
+                $numberOfRows,
+                $numberOfFiles,
+                self::RESULTS_DIR . 'A0-',
+                self::RESULTS_DIR . 'A0-means'
+            );
         });
 
         $this->task('Calculate standard error', function () {
-            $pathname = storage_path('results/A0-means.csv');
+            $pathname = storage_path(self::RESULTS_DIR . 'A0-means.csv');
             $records = Reader::createFromPath($pathname)->getRecords();
             $result = [];
 
@@ -149,61 +138,5 @@ class YFP extends Command
         });
 
         return 0;
-    }
-
-    public function doubleIterationOverFiles(
-        int $numberOfFiles,
-        string $prefixA,
-        string $prefixB,
-        string $resultPrefix,
-        Closure $callback,
-        bool $skipHeader = false
-    )
-    {
-        for ($n = 1; $n <= $numberOfFiles; ++$n) {
-            $pathnameA = storage_path($prefixA . $n . '.csv');
-            $pathnameB = storage_path($prefixB . $n . '.csv');
-
-            $recordsA = Reader::createFromPath($pathnameA)->getRecords();
-            $recordsB = Reader::createFromPath($pathnameB)->getRecords();
-
-            $recordsA->rewind();
-            $recordsB->rewind();
-            $result = [];
-            $recordNumber = 0;
-            $headerSkipped = false;
-            while ($recordsA->valid() && $recordsB->valid()) {
-                if ($skipHeader && !$headerSkipped) {
-                    $headerSkipped = true;
-
-                    $recordsA->next();
-                    $recordsB->next();
-
-                    continue;
-                }
-                $recordA = $recordsA->current();
-                $recordB = $recordsB->current();
-
-                $result[] = $callback($recordA, $recordB, $recordNumber, $n);
-
-                $recordsA->next();
-                $recordsB->next();
-                $recordNumber++;
-            }
-
-            $this->writeCsv($resultPrefix . $n, $result);
-        }
-    }
-
-    private function writeCsv(string $resultPrefix, array $data)
-    {
-        $resultPathname = storage_path($resultPrefix . '.csv');
-        if (File::exists($resultPathname)) {
-            File::delete($resultPathname);
-        }
-
-        fopen($resultPathname, 'w');
-
-        Writer::createFromPath($resultPathname)->insertAll($data);
     }
 }
