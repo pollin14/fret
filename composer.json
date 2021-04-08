@@ -1,24 +1,21 @@
 {
-    "name": "victor/fret",
-    "description": "The Laravel Zero Framework.",
+    "name": "pollin14/fret",
+    "description": "Fret calculator",
     "keywords": [
-        "framework",
-        "laravel",
-        "laravel zero",
-        "console",
-        "cli"
+        "science",
+        "fret"
     ],
-    "homepage": "https://laravel-zero.com",
+    "homepage": "https://github.com/pollin14/fret",
     "type": "project",
     "license": "MIT",
     "support": {
-        "issues": "https://github.com/laravel-zero/laravel-zero/issues",
-        "source": "https://github.com/laravel-zero/laravel-zero"
+        "issues": "https://github.com/pollin14/fret/issues",
+        "source": "https://github.com/pollin14/fret"
     },
     "authors": [
         {
-            "name": "Nuno Maduro",
-            "email": "enunomaduro@gmail.com"
+            "name": "Victor Aguilar",
+            "email": "victor.aguilar@ciencias.unam.mx"
         }
     ],
     "require": {
