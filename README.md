@@ -2,27 +2,42 @@
 
 ## Install
 
-Only install PHP
+Only install PHP 7.4
 
 ```bash
 sudo apt install php
 ```
 
+Check if php is correctly installed with
+
+```bash
+php -v
+```
+
+The result must be similar to
+
+```bash
+PHP 7.4.3 (cli) (built: Oct  6 2020 15:47:56) ( NTS )
+Copyright (c) The PHP Group
+Zend Engine v3.4.0, Copyright (c) Zend Technologies
+    with Zend OPcache v7.4.3, Copyright (c), by Zend Technologies
+    with Xdebug v2.9.2, Copyright (c) 2002-2020, by Derick Rethans
+```
+
 ## How to use
 
-First put your data files in the chapters `data/cfp` and `data/yfp`. Now run
-
-To run CFP
+Firstly, put your data files in the chapters `data/cfp` and `data/yfp` aside the fret. Then you can run CFP with
 
 ```bash 
-./fret cfp
+php fret cfp
 ```
 
-To run CFP
+or YFP with
 
 ```bash 
-./fret yfp
+php fret yfp
 ```
+
 
 Both commands accept the following options
 
@@ -34,13 +49,13 @@ Both commands accept the following options
 Example:
 
 ```bash
-./fret cfp --number-of-files=32 --number-of-lines-by-file=512
+php fret cfp --number-of-files=32 --number-of-lines-by-file=512
 ```
 
 To show the help running
 
 ```bash
-./fret cfp --help
+php fret cfp --help
 ```
 
 

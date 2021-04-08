@@ -5,6 +5,7 @@ namespace App\Commands;
 use App\Services\Cleaner;
 use App\Services\FretCommand;
 use App\Services\StepCalculator;
+use Illuminate\Support\Facades\Storage;
 use League\Csv\Reader;
 
 class CFP extends FretCommand
@@ -69,7 +70,7 @@ class CFP extends FretCommand
 
         $this->task('Generate normalized files', function () use ($numberOfFiles, $stepCalculator) {
             for ($n = 1; $n <= $numberOfFiles; ++$n) {
-                $pathname = storage_path(self::RESULTS_DIR . 'sub-' . $n . '.csv');
+                $pathname = Storage::path(self::RESULTS_DIR . 'sub-' . $n . '.csv');
                 $records = Reader::createFromPath($pathname)->getRecords();
 
                 $row = 0;

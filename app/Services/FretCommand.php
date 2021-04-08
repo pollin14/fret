@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Closure;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
 use LaravelZero\Framework\Commands\Command;
 use League\Csv\Reader;
 use League\Csv\Writer;
@@ -20,8 +21,8 @@ class FretCommand extends Command
     )
     {
         for ($n = 1; $n <= $numberOfFiles; ++$n) {
-            $pathnameA = storage_path($prefixA . $n . '.csv');
-            $pathnameB = storage_path($prefixB . $n . '.csv');
+            $pathnameA = Storage::path($prefixA . $n . '.csv');
+            $pathnameB = Storage::path($prefixB . $n . '.csv');
 
             $recordsA = Reader::createFromPath($pathnameA)->getRecords();
             $recordsB = Reader::createFromPath($pathnameB)->getRecords();
@@ -56,7 +57,7 @@ class FretCommand extends Command
 
     protected function writeCsv(string $resultPrefix, array $data)
     {
-        $resultPathname = storage_path($resultPrefix . '.csv');
+        $resultPathname = Storage::path($resultPrefix . '.csv');
         if (File::exists($resultPathname)) {
             File::delete($resultPathname);
         }
@@ -71,7 +72,7 @@ class FretCommand extends Command
         $sums = array_fill(0, $numberOfRows, 0);
         $means = [];
         for ($n = 1; $n <= $numberOfFiles; ++$n) {
-            $pathname = storage_path($dataPrefix . $n . '.csv');
+            $pathname = Storage::path($dataPrefix . $n . '.csv');
             $records = Reader::createFromPath($pathname)->getRecords();
 
             $position = 0;
