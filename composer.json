@@ -20,6 +20,7 @@
     ],
     "require": {
         "php": "^7.4",
+        "ext-mbstring": "*",
         "league/csv": "^9.7",
         "richjenks/stats": "^1.0"
     },

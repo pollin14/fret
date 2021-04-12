@@ -128,7 +128,7 @@ class YFP extends FretCommand
         });
 
         $this->task('Calculate standard error', function () {
-            $pathname = storage_path(self::RESULTS_DIR . 'A0-means.csv');
+            $pathname = self::RESULTS_DIR . 'A0-means.csv';
             $records = Reader::createFromPath($pathname)->getRecords();
             $result = [];
 

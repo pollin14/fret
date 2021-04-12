@@ -5,7 +5,7 @@
 Only install PHP 7.4
 
 ```bash
-sudo apt install php
+sudo apt install php php-mbstring
 ```
 
 Check if php is correctly installed with
