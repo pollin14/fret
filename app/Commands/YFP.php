@@ -52,8 +52,8 @@ class YFP extends FretCommand
      */
     public function handle(StepCalculator $stepCalculator, Cleaner $cleaner)
     {
-        $numberOfFiles = $this->argument('number-of-files');
-        $numberOfRows = $this->argument('number-of-lines-by-file');
+        $numberOfFiles = $this->option('number-of-files');
+        $numberOfRows = $this->option('number-of-lines-by-file');
 
         $groups = self::GROUPS;
 
