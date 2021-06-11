@@ -11,7 +11,7 @@ use RichJenks\Stats\Stats;
 
 class YFP extends FretCommand
 {
-    private const RATIO_INTERVAL = [180, 220];
+    private const RATIO_INTERVAL = [246, 267];
     private const RESULTS_DIR = 'results/yfp/';
     private const DATA_DIR = 'data/yfp/';
     private const GROUPS = [
