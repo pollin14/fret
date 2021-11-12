@@ -6,12 +6,14 @@ use App\Services\Cleaner;
 use App\Services\FretCommand;
 use App\Services\StepCalculator;
 use Exception;
+use Illuminate\Support\Facades\Storage;
 use League\Csv\Reader;
 use RichJenks\Stats\Stats;
 
 class YFP extends FretCommand
 {
-    private const RATIO_INTERVAL = [246, 267];
+    private const RATIO_INTERVAL = [237, 274];
+    private const LASER_INTERVAL = [210, 557];
     private const RESULTS_DIR = 'results/yfp/';
     private const DATA_DIR = 'data/yfp/';
     private const GROUPS = [
@@ -43,6 +45,8 @@ class YFP extends FretCommand
      */
     protected $description = 'Takes several file and calculate the fret YFP';
 
+    private array $highIntensityMax = [];
+
     /**
      * Execute the console command.
      *
@@ -52,8 +56,8 @@ class YFP extends FretCommand
      */
     public function handle(StepCalculator $stepCalculator, Cleaner $cleaner)
     {
-        $numberOfFiles = $this->option('number-of-files');
-        $numberOfRows = $this->option('number-of-lines-by-file');
+        $numberOfFiles = (int)$this->option('number-of-files');
+        $numberOfRows = (int)$this->option('number-of-lines-by-file');
 
         $groups = self::GROUPS;
 
@@ -84,13 +88,51 @@ class YFP extends FretCommand
                 self::RESULTS_DIR . 'low-sub-',
                 self::RESULTS_DIR . 'high-sub-',
                 self::RESULTS_DIR . 'low-and-high-sub-',
-                function ($recordA, $recordB, $rowNumber) use ($stepCalculator) {
+                function ($recordA, $recordB, $rowNumber, $fileNumber) use ($stepCalculator) {
                     $position = $stepCalculator->calculate($rowNumber);
+                    $result = $recordB[0];
+
+                    if ($rowNumber >= self::LASER_INTERVAL[0] && $rowNumber <= self::LASER_INTERVAL[1]) {
+                        if (!isset($this->highIntensityMax[$fileNumber])) {
+                            $this->highIntensityMax[$fileNumber] = 0;
+                        }
+
+                        if ($this->highIntensityMax[$fileNumber] < $result) {
+                            $this->highIntensityMax[$fileNumber] = $result;
+                        }
+                    }
 
                     return [$position, $recordA[0], $recordB[0]];
                 },
                 true,
             );
+        });
+
+        $this->info('The high intensity maximus are: ' . implode(', ', $this->highIntensityMax));
+
+        $this->task('Max of high/low intensity', function () use ($numberOfFiles, $stepCalculator) {
+            foreach (['high', 'low'] as $intensity) {
+                $result = [];
+
+                for ($n = 1; $n <= $numberOfFiles; ++$n) {
+                    $i = $n - 1;
+                    if (!isset($result[$i])) {
+                        $result[$i] = [];
+                    }
+
+                    $pathname = Storage::path(self::RESULTS_DIR . $intensity . '-sub-' . $n . '.csv');
+                    $records = Reader::createFromPath($pathname)->getRecords();
+
+                    $j = 0;
+                    foreach ($records as $record) {
+                        $value = $record[0] / $this->highIntensityMax[$n];
+                        $result[$j][$i] = $value;
+                        ++$j;
+                    }
+                }
+
+                $this->writeCsv(self::RESULTS_DIR . 'all-' . $intensity . '-intensity-normalized' . $n, $result);
+            }
         });
 
         $this->task('Generate A0', function () use ($numberOfFiles, $stepCalculator) {
@@ -118,6 +160,32 @@ class YFP extends FretCommand
             );
         });
 
+        $this->task('Join A0\'s', function () use ($numberOfFiles, $stepCalculator, $numberOfRows) {
+            $data = [];
+
+            for ($i = 0; $i < $numberOfRows; ++$i) {
+                $data[$i] = [];
+            }
+
+            for ($i = 0; $i < $numberOfRows; ++$i) {
+                $data[$i][0] = $stepCalculator;
+            }
+
+            for ($n = 1; $n <= $numberOfFiles; ++$n) {
+                $pathname = Storage::path(self::RESULTS_DIR . 'A0-' . $n . '.csv');
+                $records = Reader::createFromPath($pathname)->getRecords();
+
+                $rowNumber = 0;
+                $columnNumber = $n - 1;
+                foreach ($records as $record) {
+                    $data[$rowNumber][$columnNumber] = $record[1];
+                    ++$rowNumber;
+                }
+            }
+
+            $this->writeCsv(self::RESULTS_DIR . 'all-the-A0s', $data);
+        });
+
         $this->task('Generate Mean of A0', function () use ($numberOfFiles, $numberOfRows) {
             $this->mean(
                 $numberOfRows,
@@ -128,7 +196,7 @@ class YFP extends FretCommand
         });
 
         $this->task('Calculate standard error', function () {
-            $pathname = self::RESULTS_DIR . 'A0-means.csv';
+            $pathname = Storage::path(self::RESULTS_DIR . 'A0-means.csv');
             $records = Reader::createFromPath($pathname)->getRecords();
             $result = [];
 

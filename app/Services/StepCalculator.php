@@ -4,8 +4,8 @@ namespace App\Services;
 
 final class StepCalculator
 {
-    private const STEP = 0.57679;
-    private const START = 380.41;
+    private const STEP = 0.39108;
+    private const START = 328.06;
 
     public function calculate($row): float
     {

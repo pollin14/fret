@@ -61,4 +61,13 @@ To show the help running
 php fret cfp --help
 ```
 
+## Creating a release
+
+In order to create a new release run the following command
+
+```
+php fret app:build --build-version=released 
+```
+
+the release will be in `builds/fret`
 
